@@ -57,6 +57,7 @@ class Player {
   - true if the move happened
   - false if blocked or throttled
   */
+
   tryMove(level, dr, dc) {
     // Throttle discrete movement using millis()
     const now = millis();

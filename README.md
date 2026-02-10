@@ -1,28 +1,27 @@
 ## Project Title
 
-GBDA302 Week 4 Example 4: layable Maze (JSON + Level class + Player class)
+GBDA302 Week 4 Side Quest: Enhanced maze with lava (Red Tile)
 
 ---
 
 ## Authors
 
-Karen Cochrane and David Han
+Emily He
 
 ---
 
 ## Description
 
-Based on example 3, creates and positions the player using preloads and loadJSON files.
-
+This project is a tile-based maze game built using p5.js. Based on the "Week 4 Example 3" curriculum, it demonstrates how to separate game data from game logic by loading level designs from an external JSON file.
 ---
 
 ## Learning Goals
 
 Learning Goals:
 
-- Loads JSON levels (preload)
-- Builds Level objects
-- Creates/positions the Player
+- Uses "preload()" and "loadJSON" to import level configurations.
+- The "Level" class iterates through arrays to draw walls, floors, and hazards.
+- Implements a "Lava" tile (Red).
 - Handles input + level switching
 
 It is intentionally light on "details" because those are moved into:

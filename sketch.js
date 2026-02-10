@@ -1,148 +1,101 @@
-/*
-Week 4 — Example 4: Playable Maze (JSON + Level class + Player class)
-Course: GBDA302
-Instructors: Dr. Karen Cochrane and David Han
-Date: Feb. 5, 2026
+let levelsData;   // JSON data loaded from the file
+let world;        // The current Level object
+let player;       // The Player object
+let currentLevel = 0; // Index of the current level
+let tileSize = 40;    // Size of each tile in pixels
 
-This is the "orchestrator" file:
-- Loads JSON levels (preload)
-- Builds Level objects
-- Creates/positions the Player
-- Handles input + level switching
-
-It is intentionally light on "details" because those are moved into:
-- Level.js (grid + drawing + tile meaning)
-- Player.js (position + movement rules)
-
-Based on the playable maze structure from Example 3
-*/
-
-const TS = 32;
-
-// Raw JSON data (from levels.json).
-let levelsData;
-
-// Array of Level instances.
-let levels = [];
-
-// Current level index.
-let li = 0;
-
-// Player instance (tile-based).
-let player;
+// Global variables: track the start position (2) for the current level
+// We need this to reset the player if they hit lava
+let startRow = 1;
+let startCol = 1;
 
 function preload() {
-  // Ensure level data is ready before setup runs.
+  // Load the JSON file before the game starts
   levelsData = loadJSON("levels.json");
 }
 
 function setup() {
-  /*
-  Convert raw JSON grids into Level objects.
-  levelsData.levels is an array of 2D arrays. 
-  */
-  levels = levelsData.levels.map((grid) => new Level(copyGrid(grid), TS));
+  createCanvas(400, 400); 
 
-  // Create a player.
-  player = new Player(TS);
+  // 1. Create the Player instance (only need to do this once)
+  player = new Player(tileSize);
 
-  // Load the first level (sets player start + canvas size).
-  loadLevel(0);
-
-  noStroke();
-  textFont("sans-serif");
-  textSize(14);
+  // 2. Load the first level
+  loadCurrentLevel();
 }
 
 function draw() {
-  background(240);
-
-  // Draw current level then player on top.
-  levels[li].draw();
-  player.draw();
-
-  drawHUD();
-}
-
-function drawHUD() {
-  // HUD matches your original idea: show level count and controls.
-  fill(0);
-  text(`Level ${li + 1}/${levels.length} — WASD/Arrows to move`, 10, 16);
+  background(220);
+  
+  // Draw the world first (background), then the player (foreground)
+  if (world) world.draw();
+  if (player) player.draw();
 }
 
 function keyPressed() {
-  /*
-  Convert key presses into a movement direction. (WASD + arrows)
-  */
-  let dr = 0;
-  let dc = 0;
+  // If the world or player hasn't loaded yet, do nothing
+  if (!world || !player) return;
 
-  if (keyCode === LEFT_ARROW || key === "a" || key === "A") dc = -1;
-  else if (keyCode === RIGHT_ARROW || key === "d" || key === "D") dc = 1;
-  else if (keyCode === UP_ARROW || key === "w" || key === "W") dr = -1;
-  else if (keyCode === DOWN_ARROW || key === "s" || key === "S") dr = 1;
-  else return; // not a movement key
+  // 1. Attempt to move
+  // The player class handles wall collisions (Tile 1) internally
+  let moved = false;
+  if (keyCode === UP_ARROW)    moved = player.tryMove(world, -1, 0);
+  if (keyCode === DOWN_ARROW)  moved = player.tryMove(world, 1, 0);
+  if (keyCode === LEFT_ARROW)  moved = player.tryMove(world, 0, -1);
+  if (keyCode === RIGHT_ARROW) moved = player.tryMove(world, 0, 1);
 
-  // Try to move. If blocked, nothing happens.
-  const moved = player.tryMove(levels[li], dr, dc);
+  // 2. Logic to check what tile the player is standing on after moving
+  if (moved) {
+    let currentTile = world.grid[player.r][player.c];
 
-  // If the player moved onto a goal tile, advance levels.
-  if (moved && levels[li].isGoal(player.r, player.c)) {
-    nextLevel();
-  }
-  let currentTile = level.grid[player.r][player.c];
+    // --- CASE A: Stepped on Lava (4) ---
+    if (currentTile === 4) {
+      console.log("Stepped on lava! Resetting to start...");
+      player.setCell(startRow, startCol); // Reset position to the start of the level
+    }
 
-  // Check for Lava
-  if (currentTile === 4) {
-    console.log("OUCH! Lava!");
-    // Reset player to start position (you might need to store startR and startC)
-    player.r = level.startR; 
-    player.c = level.startC;
-  }
-  
-  // Check for Goal (Standard win condition)
-  if (currentTile === 3) {
-    console.log("You Win!");
-    // Load next level...
+    // --- CASE B: Reached the Goal (3) ---
+    if (currentTile === 3) {
+      console.log("Level Complete! Loading next level...");
+      
+      // Increment level index
+      currentLevel++;
+
+      // Check if there are more levels in the JSON data
+      if (currentLevel < levelsData.levels.length) {
+        loadCurrentLevel(); // Load the new level data
+      } else {
+        console.log("Congratulations! You have finished all levels!");
+        noLoop(); // Stop the game loop
+        // Optional: You could reset currentLevel = 0 here to loop the game
+      }
+    }
   }
 }
 
-// ----- Level switching -----
+// --- Helper Function: Handles loading level data ---
+function loadCurrentLevel() {
+  // 1. Get the grid array for the current level index
+  let levelGrid = levelsData.levels[currentLevel];
 
-function loadLevel(idx) {
-  li = idx;
+  // 2. Create a new Level object with this grid
+  world = new Level(levelGrid, tileSize);
 
-  const level = levels[li];
+  // 3. Resize canvas to fit the new level dimensions (Optional but recommended)
+  // This ensures the whole map is visible if levels have different sizes
+  resizeCanvas(world.grid[0].length * tileSize, world.grid.length * tileSize);
 
-  // Place player at the level's start tile (2), if present.
-  if (level.start) {
-    player.setCell(level.start.r, level.start.c);
-  } else {
-    // Fallback spawn: top-left-ish (but inside bounds).
-    player.setCell(1, 1);
+  // 4. Find the Start Position (2) in the new grid
+  // We scan the array to find where the player should start
+  for (let r = 0; r < world.grid.length; r++) {
+    for (let c = 0; c < world.grid[r].length; c++) {
+      if (world.grid[r][c] === 2) {
+        startRow = r;
+        startCol = c;
+      }
+    }
   }
 
-  // Ensure the canvas matches this level’s dimensions.
-  resizeCanvas(level.pixelWidth(), level.pixelHeight());
-}
-
-function nextLevel() {
-  // Wrap around when we reach the last level.
-  const next = (li + 1) % levels.length;
-  loadLevel(next);
-}
-
-// ----- Utility -----
-
-function copyGrid(grid) {
-  /*
-  Make a deep-ish copy of a 2D array:
-  - new outer array
-  - each row becomes a new array
-
-  Why copy?
-  - Because Level constructor may normalize tiles (e.g., replace 2 with 0)
-  - And we don’t want to accidentally mutate the raw JSON data object. 
-  */
-  return grid.map((row) => row.slice());
+  // 5. Move the player to the found start position
+  player.setCell(startRow, startCol);
 }
