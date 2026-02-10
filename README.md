@@ -19,13 +19,8 @@ This project is a tile-based maze game built using p5.js. Based on the "Week 4 E
 
 Learning Goals:
 
-- Uses "preload()" and "loadJSON" to import level configurations.
-- The "Level" class iterates through arrays to draw walls, floors, and hazards.
-- Implements a "Lava" tile (Red).
-- Handles input + level switching
-
-It is intentionally light on "details" because those are moved into:
-
+- I implemented a check in the movement loop to detect specific tile values. This allows the game to distinguish between walls (block movement), lava (reset position), and goals (load next level).
+- I practiced separating responsibilities. The Level class handles drawing the different terrain colors, while the Player class handles movement, and the sketch.js file manages the game state (winning/losing).
 - Level.js (grid + drawing + tile meaning)
 - Player.js (position + movement rules)
 
@@ -39,6 +34,5 @@ N/A
 
 ## GenAI
 
-The code was written by Dr. Karen Cochrane and David Han but they used GenAI to write the comments.
-
+I used the starter code provided by Dr. Karen Cochrane and David Han (Week 4 Examples) as the foundation. I used GenAI (Gemini) to help troubleshoot my collision detection logic—specifically why the player wasn't resetting when touching the lava and to help generate the comments that explain the new functions in sketch.js.
 ---
